@@ -4154,8 +4154,11 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
         peer->m_addr_processed += num_proc;
         peer->m_addr_rate_limited += num_rate_limit;
-        LogPrint(BCLog::NET, "Received addr: %u addresses (%u processed, %u rate-limited) from peer=%d\n",
-                 vAddr.size(), num_proc, num_rate_limit, pfrom.GetId());
+        // [YUXUAN] modified log addr data
+        LogPrint(BCLog::NET, "Received addr: %u addresses (%u processed, %u rate-limited) from peer=%d, [%s]\n",
+            vAddr.size(), num_proc, num_rate_limit, pfrom.GetId(),allAddresses.c_str());
+        // LogPrint(BCLog::NET, "Received addr: %u addresses (%u processed, %u rate-limited) from peer=%d\n",
+        //          vAddr.size(), num_proc, num_rate_limit, pfrom.GetId());
 
         m_addrman.Add(vAddrOk, pfrom.addr, 2h);
         if (vAddr.size() < 1000) peer->m_getaddr_sent = false;
@@ -4217,7 +4220,9 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
                     return;
                 }
                 const GenTxid gtxid = ToGenTxid(inv);
-                const bool fAlreadyHave = AlreadyHaveTx(gtxid, /*include_reconsiderable=*/true);
+                /// [YUXUAN] dont response to INV tx to keep information clean
+                // const bool fAlreadyHave = AlreadyHaveTx(gtxid, /*include_reconsiderable=*/true);
+                const bool fAlreadyHave = true;
                 LogPrint(BCLog::NET, "got inv: %s  %s peer=%d\n", inv.ToString(), fAlreadyHave ? "have" : "new", pfrom.GetId());
 
                 AddKnownTx(*peer, inv.hash);
@@ -4274,12 +4279,13 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         if (vInv.size() > 0) {
             LogPrint(BCLog::NET, "received getdata for: %s peer=%d\n", vInv[0].ToString(), pfrom.GetId());
         }
-
-        {
-            LOCK(peer->m_getdata_requests_mutex);
-            peer->m_getdata_requests.insert(peer->m_getdata_requests.end(), vInv.begin(), vInv.end());
-            ProcessGetData(pfrom, *peer, interruptMsgProc);
-        }
+        // [YUXUAN] Modified getdata part
+        LogPrint(BCLog::NET, "[YUXUAN]won't response, received getdata for: %s peer=%d\n", vInv[0].ToString(), pfrom.GetId());
+        // {
+        //     LOCK(peer->m_getdata_requests_mutex);
+        //     peer->m_getdata_requests.insert(peer->m_getdata_requests.end(), vInv.begin(), vInv.end());
+        //     ProcessGetData(pfrom, *peer, interruptMsgProc);
+        // }
 
         return;
     }
