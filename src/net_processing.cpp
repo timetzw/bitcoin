@@ -4113,6 +4113,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         uint64_t num_proc = 0;
         uint64_t num_rate_limit = 0;
         Shuffle(vAddr.begin(), vAddr.end(), m_rng);
+        std::string allAddresses;
         for (CAddress& addr : vAddr)
         {
             if (interruptMsgProc)
@@ -4150,7 +4151,11 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
             // Do not store addresses outside our network
             if (reachable) {
                 vAddrOk.push_back(addr);
+                allAddresses += addr.ToStringAddrPort() + ",";
             }
+        }
+        if (!allAddresses.empty()) {
+            allAddresses = allAddresses.substr(0, allAddresses.size() - 1);
         }
         peer->m_addr_processed += num_proc;
         peer->m_addr_rate_limited += num_rate_limit;
