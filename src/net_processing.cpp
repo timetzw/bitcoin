@@ -2619,7 +2619,19 @@ void PeerManagerImpl::ProcessGetData(CNode& pfrom, Peer& peer, const std::atomic
         // In normal operation, we often send NOTFOUND messages for parents of
         // transactions that we relay; if a peer is missing a parent, they may
         // assume we have them and request the parents from us.
-        MakeAndPushMessage(pfrom, NetMsgType::NOTFOUND, vNotFound);
+        //MakeAndPushMessage(pfrom, NetMsgType::NOTFOUND, vNotFound);
+
+        //[YUXUAN] Modified getdata part, won't reply if we can't find tx
+        std::string notFoundStr;
+        for (const auto& inv : vNotFound) {
+            notFoundStr += inv.ToString() + ", ";
+        }
+        // Remove the trailing comma and space
+        if (!notFoundStr.empty()) {
+            notFoundStr.pop_back();
+            notFoundStr.pop_back();
+        }
+        LogPrint(BCLog::NET, "[YUXUAN]received getdata but not found, ignore: [%s], peer=%d\n", notFoundStr, pfrom.GetId());
     }
 }
 
@@ -4284,13 +4296,12 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         if (vInv.size() > 0) {
             LogPrint(BCLog::NET, "received getdata for: %s peer=%d\n", vInv[0].ToString(), pfrom.GetId());
         }
-        // [YUXUAN] Modified getdata part
-        LogPrint(BCLog::NET, "[YUXUAN]won't response, received getdata for: %s peer=%d\n", vInv[0].ToString(), pfrom.GetId());
-        // {
-        //     LOCK(peer->m_getdata_requests_mutex);
-        //     peer->m_getdata_requests.insert(peer->m_getdata_requests.end(), vInv.begin(), vInv.end());
-        //     ProcessGetData(pfrom, *peer, interruptMsgProc);
-        // }
+        
+        {
+            LOCK(peer->m_getdata_requests_mutex);
+            peer->m_getdata_requests.insert(peer->m_getdata_requests.end(), vInv.begin(), vInv.end());
+            ProcessGetData(pfrom, *peer, interruptMsgProc);
+        }
 
         return;
     }
